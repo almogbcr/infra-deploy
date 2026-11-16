@@ -7,5 +7,5 @@ def hello_world():
     return "<p>Hello World</p>"
 
 @app.route("/health")
-def status()
+def status():
     return {"status": "healthy"}, 200
