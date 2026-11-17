@@ -28,6 +28,11 @@ jobs:
       - name: Run Docker Container
         run: docker run -d --name flaskapp -p 5050:5050 flask-app:test
 
+      - name: Check Container Logs
+        run: |
+          docker ps -a
+          docker logs flaskapp
+          
       - name: Check the deployed server URL
         uses: jtalk/url-health-check-action@v5
         with:
