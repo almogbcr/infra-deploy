@@ -4,11 +4,32 @@ on:
   push:
     branches:
       - main
+      - dev
     paths:
       - 'app/**'
+      - '!app/README.MD'
+      - 'tests/**'
       - '.github/workflows/ci.yaml'
+  workflow_dispatch:
 jobs:
-  buildx: 
+  changes:
+    runs-on: ubuntu-24.04
+    outputs:
+      app: ${{ steps.filter.outputs.app}}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v7
+      
+      - name: check changed files
+        id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          predicate-quantifier: 'some-with-excludes'
+          filters: |
+            app:
+              - 'app/**'
+              ` '!app/README.MD'
+  tests:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repo
@@ -27,9 +48,11 @@ jobs:
       - name: run tests for flask
         run: python -m pytest -v tests/flask_test.py
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
+  build: 
+    needs: [changes, tests]
+    if: needs.changes.outputs.app == 'true'
+    runs-on: ubuntu-24.04
+    steps:
       - name: Get Short SHA
         run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
 
