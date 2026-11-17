@@ -8,7 +8,7 @@ on:
       - 'app/**'
       - '.github/workflows/ci.yaml'
 jobs:
-  buildx:
+  buildx: 
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repo
