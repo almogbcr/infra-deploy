@@ -36,4 +36,3 @@ docker run -d --name flaskapp -p 5050:5050 flask-app:1.0
 curl -i http://localhost:5050/health
 ```
 * HTTP 200 With a healthy status
-
