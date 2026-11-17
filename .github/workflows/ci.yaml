@@ -50,9 +50,12 @@ jobs:
 
   build: 
     needs: [changes, tests]
-    if: needs.changes.outputs.app == 'true'
+    if: needs.changes.outputs.app == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v7
+
       - name: Get Short SHA
         run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
 
