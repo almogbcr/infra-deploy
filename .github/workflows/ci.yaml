@@ -28,7 +28,7 @@ jobs:
           filters: |
             app:
               - 'app/**'
-              ` '!app/README.MD'
+              - '!app/README.MD'
   tests:
     runs-on: ubuntu-24.04
     steps:
