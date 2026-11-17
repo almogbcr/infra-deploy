@@ -26,7 +26,7 @@ jobs:
           context: ./app
           push: false
           load: true
-          tags: tags: flask-app:${{ env.SHORT_SHA }}
+          tags: flask-app:${{ env.SHORT_SHA }}
       
       - name: Run Docker Container
         run: docker run -d --name flaskapp -p 5050:5050 flask-app:${{ env.SHORT_SHA }}
