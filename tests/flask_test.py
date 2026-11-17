@@ -1,5 +1,5 @@
-
 from app.app import app
+
 
 def test_home():
     client = app.test_client()
@@ -7,6 +7,8 @@ def test_home():
 
     assert res.status_code == 200
     assert b"DevOps Assignment" in res.data
+
+
 def test_health():
     client = app.test_client()
     res = client.get("/health")
