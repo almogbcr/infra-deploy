@@ -6,10 +6,10 @@ on:
       - main
       - dev
     paths:
-      - 'app/**'
-      - '!app/README.MD'
-      - 'tests/**'
-      - '.github/workflows/ci.yaml'
+    - 'app/**'
+    - 'tests/**'
+    - '.github/workflows/ci.yaml'
+    - '!**/*.MD'
   workflow_dispatch:
 jobs:
   changes:
@@ -28,7 +28,7 @@ jobs:
           filters: |
             app:
               - 'app/**'
-              - '!app/README.MD'
+              - '!**/*.MD'
   tests:
     runs-on: ubuntu-24.04
     steps:
