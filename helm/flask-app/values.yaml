@@ -1,0 +1,29 @@
+flask:
+  replicas: 1
+
+  image:
+    imageRepo: almogbcr/flask-app
+    imagePullPolicy: IfNotPresent
+  
+  ports: 
+    containerPort: 5050
+
+  readinessProbe:
+  httpGet:
+    path: /health
+    port: 5050
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 2
+  failureThreshold: 3
+  successThreshold: 3
+
+  livenessProbe:
+  httpGet:
+    path: /health
+    port: 5050
+  initialDelaySeconds: 15
+  periodSeconds: 20
+  timeoutSeconds: 2
+  failureThreshold: 3
+  successThreshold: 1
