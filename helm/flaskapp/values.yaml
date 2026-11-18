@@ -1,11 +1,10 @@
 flask:
-  metadata:
-    name: flaskapp
-    replicas: 1
-  
+  replicas: 1
+
 
   image:
     imageRepo: almogbcr/flask-app
+    imageTag: d6b39f3
     imagePullPolicy: IfNotPresent
   
   ports: 

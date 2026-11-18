@@ -1,8 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: flaskapp
+  name: {{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ .Values.flask.metadata.name }}
-  
+    app: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.flask.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name}}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Release.Name }}
+          image: "{{ .Values.flask.image.imageRepo }}: {{ .Values.flask.image.imageTag }}"
+          imagePullPolicy: {{ .Values.flask.image.imagePullPolicy  }}
+          ports:
+            - containerPort: {{ .Values.flask.ports.containerPort }}
