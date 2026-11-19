@@ -31,5 +31,5 @@ spec:
           livenessProbe:
             {{- toYaml .Values.flask.livenessProbe | nindent 12 }}
           envFrom:
-                configMapRef:
-                  name: {{ .Release.Name }}-config
+                - configMapRef:
+                    name: {{ .Release.Name }}-config
