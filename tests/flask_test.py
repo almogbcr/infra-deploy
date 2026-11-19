@@ -6,7 +6,11 @@ def test_home():
     res = client.get("/")
 
     assert res.status_code == 200
-    assert b"DevOps Assignment" in res.data
+
+    data = res.get_json()
+    assert data["message"] == "Hello World"
+    assert data["environment"] == "local"
+    assert data["log_level"] == "INFO"
 
 
 def test_health():

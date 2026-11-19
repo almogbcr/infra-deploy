@@ -3,4 +3,5 @@
 *.env
 .env.*
 install/
+__pycache__/
 
