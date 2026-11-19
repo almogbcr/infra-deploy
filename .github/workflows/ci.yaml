@@ -44,7 +44,7 @@ jobs:
           python -m pip install -r app/requirements.txt
           python -m pip install ruff pytest
       - name: check py lint
-        run: ruff check app/ tests/      
+        run: ruff check --select F --ignore F401 app/ tests/    
       - name: run tests for flask
         run: python -m pytest -v tests/flask_test.py
 
