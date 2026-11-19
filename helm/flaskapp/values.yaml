@@ -3,7 +3,7 @@ flask:
 
   image:
     imageRepo: almogbcr/flask-app
-    imageTag: 74c83ac
+    imageTag: 103946a
     imagePullPolicy: IfNotPresent
   
   ports: 
