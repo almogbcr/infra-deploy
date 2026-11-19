@@ -1,0 +1,12 @@
+flask:
+  replicas: 1
+  image:
+    imageTag: cd755f4
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "64Mi"
+    limits:
+      cpu: "600m"
+      memory: "128Mi"
+  LOG_LEVEL: DEBUG
