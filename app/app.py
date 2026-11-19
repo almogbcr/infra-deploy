@@ -10,7 +10,11 @@ APP_MESSAGE = os.getenv("APP_MESSAGE", "Hello World")
 
 @app.route("/")
 def hello_world():
-    return "DevOps Assignment"
+        return {
+        "message": APP_MESSAGE,
+        "environment": APP_ENV,
+        "log_level": LOG_LEVEL
+    }
 
 @app.route("/health")
 def status():
