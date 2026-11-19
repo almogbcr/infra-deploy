@@ -2,6 +2,10 @@ from flask import Flask
 
 app = Flask(__name__)
 
+APP_ENV = os.getenv("APP_ENV", "local")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+APP_MESSAGE = os.getenv("APP_MESSAGE", "Hello World")
+
 @app.route("/")
 def hello_world():
     return "DevOps Assignment"

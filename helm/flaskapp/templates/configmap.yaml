@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  namespace: {{ .Release.Namespace }}
+data:
+  APP_ENV: {{ .Release.Namespace | quote}}
+  LOG_LEVEL: {{ .Values.flask.LOG_LEVEL | quote}}
+  APP_MESSAGE: {{ printf "Hello From %s" .Release.Namespace | quote }}

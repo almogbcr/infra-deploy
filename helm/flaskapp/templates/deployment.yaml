@@ -21,7 +21,7 @@ spec:
           imagePullPolicy: {{ .Values.flask.image.imagePullPolicy  }}
           ports:
             - containerPort: {{ .Values.flask.ports.containerPort }}
-            
+
           resources:
             {{- toYaml .Values.flask.resources | nindent 12}}
 
@@ -30,3 +30,6 @@ spec:
 
           livenessProbe:
             {{- toYaml .Values.flask.livenessProbe | nindent 12 }}
+          envFrom:
+                configMapRef:
+                  name: {{ .Release.Name }}-config
