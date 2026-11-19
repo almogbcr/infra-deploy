@@ -17,7 +17,16 @@ spec:
     spec:
       containers:
         - name: {{ .Release.Name }}
-          image: "{{ .Values.flask.image.imageRepo }}: {{ .Values.flask.image.imageTag }}"
+          image: "{{ .Values.flask.image.imageRepo }}:{{ .Values.flask.image.imageTag }}"
           imagePullPolicy: {{ .Values.flask.image.imagePullPolicy  }}
           ports:
             - containerPort: {{ .Values.flask.ports.containerPort }}
+            
+          resources:
+            {{- toYaml .Values.flask.resources | nindent 12}}
+
+          readinessProbe:
+            {{- toYaml .Values.flask.readinessProbe | nindent 12 }}
+
+          livenessProbe:
+            {{- toYaml .Values.flask.livenessProbe | nindent 12 }}
