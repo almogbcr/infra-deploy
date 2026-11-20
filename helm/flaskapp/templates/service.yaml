@@ -7,6 +7,6 @@ spec:
   selector:
     app: {{ .Release.Name }}
   ports:
-    - port: {{ .Values.flask.ports.containerPort }}
-      targetPort: {{ .Values.flask.ports.containerPort }}
+    - port: {{ .Values.app.ports.containerPort }}
+      targetPort: {{ .Values.app.ports.containerPort }}
   type: ClusterIP

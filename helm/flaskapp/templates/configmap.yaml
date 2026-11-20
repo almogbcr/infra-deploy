@@ -5,5 +5,5 @@ metadata:
   namespace: {{ .Release.Namespace }}
 data:
   APP_ENV: {{ .Release.Namespace | quote}}
-  LOG_LEVEL: {{ .Values.flask.LOG_LEVEL | quote}}
+  LOG_LEVEL: {{ .Values.app.LOG_LEVEL | quote}}
   APP_MESSAGE: {{ printf "Hello From %s" .Release.Namespace | quote }}

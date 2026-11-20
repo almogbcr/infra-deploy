@@ -6,7 +6,7 @@ metadata:
   labels:
     app: {{ .Release.Name }}
 spec:
-  replicas: {{ .Values.flask.replicas }}
+  replicas: {{ .Values.app.replicas }}
   selector:
     matchLabels:
       app: {{ .Release.Name}}
@@ -17,19 +17,24 @@ spec:
     spec:
       containers:
         - name: {{ .Release.Name }}
-          image: "{{ .Values.flask.image.imageRepo }}:{{ .Values.flask.image.imageTag }}"
-          imagePullPolicy: {{ .Values.flask.image.imagePullPolicy  }}
+          image: "{{ .Values.app.image.imageRepo }}:{{ .Values.app.image.imageTag }}"
+          imagePullPolicy: {{ .Values.app.image.imagePullPolicy  }}
           ports:
-            - containerPort: {{ .Values.flask.ports.containerPort }}
+            - containerPort: {{ .Values.app.ports.containerPort }}
 
           resources:
-            {{- toYaml .Values.flask.resources | nindent 12}}
+            {{- toYaml .Values.app.resources | nindent 12}}
 
           readinessProbe:
-            {{- toYaml .Values.flask.readinessProbe | nindent 12 }}
+            {{- toYaml .Values.app.readinessProbe | nindent 12 }}
 
           livenessProbe:
-            {{- toYaml .Values.flask.livenessProbe | nindent 12 }}
+            {{- toYaml .Values.app.livenessProbe | nindent 12 }}
+
           envFrom:
-                - configMapRef:
-                    name: {{ .Release.Name }}-config
+            - configMapRef:
+                name: {{ .Release.Name }}-config
+            {{- if .Values.externalSecrets.enabled }}
+            - secretRef:
+                name: {{ .Release.Name }}-secret
+            {{- end }}

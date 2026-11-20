@@ -1,4 +1,4 @@
-flask:
+app:
   image:
     imageRepo: almogbcr/flask-app
     imagePullPolicy: IfNotPresent
@@ -27,3 +27,17 @@ flask:
     successThreshold: 1
 
   LOG_LEVEL: INFO
+
+ingress:
+  className: alb
+  host: ""
+  annotations:
+    alb.ingress.kubernetes.io/target-type: ip
+
+externalSecrets:
+  enabled: false
+aws:
+  region: ""
+
+resourceQuota:
+  enabled: false
