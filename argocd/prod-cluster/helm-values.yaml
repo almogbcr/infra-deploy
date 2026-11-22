@@ -1,0 +1,8 @@
+configs:
+  cm:
+    accounts.deployer: login
+
+  rbac:
+    policy.default: role:readonly
+    policy.csv: |
+      p, deployer, applications, sync, default/webapp-production, allow
