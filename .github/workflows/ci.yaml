@@ -99,11 +99,14 @@ jobs:
 
       - name: Update Dev image tag
         if: github.ref == 'refs/heads/dev'
+        uses: mikefarah/yq@v4.54.2
+        with:
+          cmd: yq -i '.app.image.imageTag = strenv(SHORT_SHA)' helm/flaskapp/values-dev.yaml
+
+      - name: Commit and Push Dev image tag
+        if: github.ref == 'refs/heads/dev'
         run: |
           FILE="helm/flaskapp/values-dev.yaml"
-
-          grep -qE '^[[:space:]]*imageTag:' "$FILE"
-          sed -i -E "s/^([[:space:]]*imageTag:).*/\1 ${SHORT_SHA}/" "$FILE"
 
           if ! git diff --quiet -- "$FILE"; then
             git config user.name "github-actions[bot]"
