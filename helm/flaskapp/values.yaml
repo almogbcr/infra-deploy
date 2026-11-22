@@ -26,7 +26,10 @@ app:
     failureThreshold: 3
     successThreshold: 1
 
-  LOG_LEVEL: INFO
+  env:
+    APP_ENV: "__NAMESPACE__"
+    APP_MESSAGE: "Hello From __NAMESPACE__"
+    LOG_LEVEL: INFO
 
 ingress:
   className: alb

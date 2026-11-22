@@ -9,7 +9,10 @@ app:
     limits:
       cpu: "600m"
       memory: "192Mi"
-  LOG_LEVEL: INFO
+  env:
+    APP_ENV: "__NAMESPACE__"
+    APP_MESSAGE: "Hello From __NAMESPACE__"
+    LOG_LEVEL: INFO
 
 ingress:
   annotations:
