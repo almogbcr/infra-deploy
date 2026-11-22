@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: {{ .Release.Name }}
-          image: "{{ .Values.app.image.imageRepo }}:{{ .Values.app.image.imageTag }}"
+          image: "{{ .Values.app.image.imageRepo }}:{{ required "Image tag is missing. Check that the correct environment values file was provided using -f" .Values.app.image.imageTag }}"
           imagePullPolicy: {{ .Values.app.image.imagePullPolicy  }}
           ports:
             - containerPort: {{ .Values.app.ports.containerPort }}
