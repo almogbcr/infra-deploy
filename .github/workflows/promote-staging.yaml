@@ -1,0 +1,72 @@
+
+name: Promote to Staging
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout Main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Checkout Dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          path: dev-source
+
+      - name: Get Dev image tag
+        id: dev_image
+        uses: mikefarah/yq@v4.54.2
+        with:
+          cmd: yq -r '.app.image.imageTag' dev-source/helm/flaskapp/values-dev.yaml
+
+      - name: Validate image tag
+        env:
+          IMAGE_TAG: ${{ steps.dev_image.outputs.result }}
+        run: |
+          [[ "$IMAGE_TAG" =~ ^[0-9a-f]{7,40}$ ]] || exit 1
+
+      - name: Update Staging image tag
+        uses: mikefarah/yq@v4.54.2
+        env:
+          IMAGE_TAG: ${{ steps.dev_image.outputs.result }}
+        with:
+          cmd: yq -i '.app.image.imageTag = strenv(IMAGE_TAG)' helm/flaskapp/values-staging.yaml
+
+      - name: Create Staging Pull Request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE_TAG: ${{ steps.dev_image.outputs.result }}
+        run: |
+          FILE="helm/flaskapp/values-staging.yaml"
+
+          if git diff --quiet -- "$FILE"; then
+            echo "Staging already uses this image version"
+            exit 0
+          fi
+
+          BRANCH="promote/staging-${IMAGE_TAG}-${GITHUB_RUN_ID}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git switch -c "$BRANCH"
+          git add "$FILE"
+          git commit -m "chore: promote staging to ${IMAGE_TAG}"
+          git push origin "$BRANCH"
+
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "Promote Staging to ${IMAGE_TAG}" \
+            --body "Promote the tested Dev image to Staging."
