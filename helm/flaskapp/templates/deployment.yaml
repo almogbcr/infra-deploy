@@ -15,6 +15,7 @@ spec:
       labels:
         app: {{ .Release.Name }}
     spec:
+      serviceAccountName: {{ .Release.Name }}-{{ .Release.Namespace }}-sa
       containers:
         - name: {{ .Release.Name }}
           image: "{{ .Values.app.image.imageRepo }}:{{ required "Image tag is missing. Check that the correct environment values file was provided using -f" .Values.app.image.imageTag }}"
