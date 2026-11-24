@@ -1,7 +1,7 @@
 app:
   replicas: 1
   image:
-    imageTag: 6db961d
+    imageTag: e52f298
   resources:
     requests:
       cpu: "100m"
