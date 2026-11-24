@@ -1,0 +1,65 @@
+name: Promote to production
+
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout Approved main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Get staging image tag
+        id: staging_image
+        uses: mikefarah/yq@v4.54.2
+        with:
+          cmd: yq -r '.app.image.imageTag' helm/flaskapp/values-staging.yaml
+
+      - name: Validate image tag
+        env:
+          IMAGE_TAG: ${{ steps.staging_image.outputs.result }}
+        run: |
+          [[ "$IMAGE_TAG" =~ ^[0-9a-f]{7,40}$ ]] || exit 1
+
+      - name: Update production image tag
+        uses: mikefarah/yq@v4.54.2
+        env:
+          IMAGE_TAG: ${{ steps.staging_image.outputs.result }}
+        with:
+          cmd: yq -i '.app.image.imageTag = strenv(IMAGE_TAG)' helm/flaskapp/values-prod.yaml
+
+      - name: Commit production Tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_TAG: ${{ steps.staging_image.outputs.result }}
+        run: |
+          FILE="helm/flaskapp/values-prod.yaml"
+
+          if git diff --quiet -- "$FILE"; then
+            echo "production already uses this image version"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          BRANCH="promote-prod-${IMAGE_TAG}"
+          git switch -c "$BRANCH"
+
+
+          git add "$FILE"
+          git commit -m "chore: promote production to ${IMAGE_TAG}"
+          git push origin "$BRANCH"
+
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "Promote production to ${IMAGE_TAG}" \
+            --body "Promote staging image ${IMAGE_TAG} to production"
