@@ -7,7 +7,7 @@ spec:
   project: default
   
   source: 
-    repoURL: https://github.com/almogbcr/infra-deploy.git
+    repoURL: git@github.com:almogbcr/infra-deploy.git
     targetRevision: main
     path: argocd/dev-cluster/apps
 
