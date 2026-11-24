@@ -1,7 +1,7 @@
 app:
   replicas: 2
   image:
-    imageTag: cd755f4
+    imageTag: c3c0aa9
   resources:
     requests:
       cpu: "200m"
@@ -9,21 +9,17 @@ app:
     limits:
       cpu: "600m"
       memory: "192Mi"
-
   env:
     LOG_LEVEL: INFO
-
 ingress:
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
-
 externalSecrets:
   data:
     - secretKey: FLASK_API_KEY
       remoteKey: production/flask/api-key
 aws:
   region: ""
-
 resourceQuota:
   enabled: true
   hard:
