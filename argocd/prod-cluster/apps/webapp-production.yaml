@@ -22,6 +22,7 @@ spec:
     namespace: production
 
   syncPolicy:
-    selfHeal: true
+    automated:
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
