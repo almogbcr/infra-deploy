@@ -8,7 +8,7 @@ spec:
   project: default
 
   source:
-    repoURL: https://github.com/almogbcr/infra-deploy.git
+    repoURL: git@github.com:almogbcr/infra-deploy.git
     targetRevision: dev
     path: helm/flaskapp
 
