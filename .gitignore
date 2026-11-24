@@ -4,4 +4,4 @@
 .env.*
 install/
 __pycache__/
-
+.terraform/
