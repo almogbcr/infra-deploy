@@ -2,6 +2,9 @@
 name: Promote to Staging
 
 on:
+  pull_request:
+    types: [closed]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -10,25 +13,20 @@ permissions:
 
 jobs:
   promote:
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'dev')
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Checkout Main
+      - name: Checkout Approved main
         uses: actions/checkout@v4
         with:
-          ref: main
-
-      - name: Checkout Dev
-        uses: actions/checkout@v4
-        with:
-          ref: dev
-          path: dev-source
+          ref: ${{ github.event.pull_request.merge_commit_sha || 'main' }}
 
       - name: Get Dev image tag
         id: dev_image
         uses: mikefarah/yq@v4.54.2
         with:
-          cmd: yq -r '.app.image.imageTag' dev-source/helm/flaskapp/values-dev.yaml
+          cmd: yq -r '.app.image.imageTag' helm/flaskapp/values-dev.yaml
 
       - name: Validate image tag
         env:
