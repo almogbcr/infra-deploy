@@ -1,7 +1,7 @@
 app:
   replicas: 1
   image:
-    imageTag: c1da93f
+    imageTag: a697a5a
   resources:
     requests:
       cpu: "100m"
@@ -19,10 +19,8 @@ externalSecrets:
   data:
     - secretKey: FLASK_API_KEY
       remoteKey: dev/flask/api-key
-      
 aws:
   region: "eu-north-1"
-
 resourceQuota:
   enabled: true
   hard:
@@ -30,7 +28,6 @@ resourceQuota:
     requests.cpu: 1
     limits.memory: 1Gi
     limits.cpu: 2
-
 networkPolicy:
   enabled: true
   denyEgress: true
