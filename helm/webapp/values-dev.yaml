@@ -21,7 +21,7 @@ externalSecrets:
       remoteKey: dev/flask/api-key
       
 aws:
-  region: "eu-central-1"
+  region: "eu-north-1"
 
 resourceQuota:
   enabled: true
