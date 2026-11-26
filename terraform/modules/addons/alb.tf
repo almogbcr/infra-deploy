@@ -10,6 +10,7 @@ resource "helm_release" "alb" {
       clusterName = var.cluster_name
       region      = var.aws_region
       vpcId       = var.vpc_id
+      enableServiceMutatorWebhook = false
 
       serviceAccount = {
         create = true
