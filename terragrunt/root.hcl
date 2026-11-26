@@ -3,6 +3,7 @@ terraform_binary = "terraform"
 generate "provider" {
   path      = "providers.tf"
   if_exists = "overwrite_terragrunt"
+  disable   = basename(get_terragrunt_dir()) == "addons"
 
   contents = <<EOF
 terraform {

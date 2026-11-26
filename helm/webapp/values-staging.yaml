@@ -18,11 +18,13 @@ ingress:
     alb.ingress.kubernetes.io/scheme: internal
 
 externalSecrets:
+  enabled: true
   data:
     - secretKey: FLASK_API_KEY
       remoteKey: staging/flask/api-key
+      
 aws:
-  region: ""
+  region: "eu-central-1"
 
 resourceQuota:
   enabled: true

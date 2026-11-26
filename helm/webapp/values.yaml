@@ -36,6 +36,7 @@ ingress:
   host: ""
   annotations:
     alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /health
 
 externalSecrets:
   enabled: false
