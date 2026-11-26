@@ -30,3 +30,8 @@ variable "max_size" {
   description = "Maximum number of nodes"
   type        = number
 }
+
+variable "secret_names" {
+  description = "Secrets managed by this environment"
+  type        = set(string)
+}

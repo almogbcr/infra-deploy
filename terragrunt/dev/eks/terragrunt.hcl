@@ -24,4 +24,8 @@ inputs = {
   desired_size       = 1
   min_size           = 1
   max_size           = 1
+  secret_names = [
+    "dev/flask/api-key",
+    "staging/flask/api-key"
+  ]
 }

@@ -10,7 +10,7 @@ spec:
   source:
     repoURL: git@github.com:almogbcr/infra-deploy.git
     targetRevision: dev
-    path: helm/flaskapp
+    path: helm/webapp
 
     helm:
       releaseName: webapp
