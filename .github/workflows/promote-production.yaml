@@ -20,7 +20,7 @@ jobs:
         id: staging_image
         uses: mikefarah/yq@v4.54.2
         with:
-          cmd: yq -r '.app.image.imageTag' helm/flaskapp/values-staging.yaml
+          cmd: yq -r '.app.image.imageTag' helm/webapp/values-staging.yaml
 
       - name: Validate image tag
         env:
@@ -33,14 +33,14 @@ jobs:
         env:
           IMAGE_TAG: ${{ steps.staging_image.outputs.result }}
         with:
-          cmd: yq -i '.app.image.imageTag = strenv(IMAGE_TAG)' helm/flaskapp/values-prod.yaml
+          cmd: yq -i '.app.image.imageTag = strenv(IMAGE_TAG)' helm/webapp/values-prod.yaml
 
       - name: Commit production Tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMAGE_TAG: ${{ steps.staging_image.outputs.result }}
         run: |
-          FILE="helm/flaskapp/values-prod.yaml"
+          FILE="helm/webapp/values-prod.yaml"
 
           if git diff --quiet -- "$FILE"; then
             echo "production already uses this image version"

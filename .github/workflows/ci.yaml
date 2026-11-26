@@ -101,12 +101,12 @@ jobs:
         if: github.ref == 'refs/heads/dev'
         uses: mikefarah/yq@v4.54.2
         with:
-          cmd: yq -i '.app.image.imageTag = strenv(SHORT_SHA)' helm/flaskapp/values-dev.yaml
+          cmd: yq -i '.app.image.imageTag = strenv(SHORT_SHA)' helm/webapp/values-dev.yaml
 
       - name: Commit and Push Dev image tag
         if: github.ref == 'refs/heads/dev'
         run: |
-          FILE="helm/flaskapp/values-dev.yaml"
+          FILE="helm/webapp/values-dev.yaml"
 
           if ! git diff --quiet -- "$FILE"; then
             git config user.name "github-actions[bot]"

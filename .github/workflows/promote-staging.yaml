@@ -25,7 +25,7 @@ jobs:
         id: dev_image
         uses: mikefarah/yq@v4.54.2
         with:
-          cmd: yq -r '.app.image.imageTag' helm/flaskapp/values-dev.yaml
+          cmd: yq -r '.app.image.imageTag' helm/webapp/values-dev.yaml
 
       - name: Validate image tag
         env:
@@ -38,13 +38,13 @@ jobs:
         env:
           IMAGE_TAG: ${{ steps.dev_image.outputs.result }}
         with:
-          cmd: yq -i '.app.image.imageTag = strenv(IMAGE_TAG)' helm/flaskapp/values-staging.yaml
+          cmd: yq -i '.app.image.imageTag = strenv(IMAGE_TAG)' helm/webapp/values-staging.yaml
 
       - name: Commit Staging Tag
         env:
           IMAGE_TAG: ${{ steps.dev_image.outputs.result }}
         run: |
-          FILE="helm/flaskapp/values-staging.yaml"
+          FILE="helm/webapp/values-staging.yaml"
 
           if git diff --quiet -- "$FILE"; then
             echo "Staging already uses this image version"

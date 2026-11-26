@@ -15,11 +15,14 @@ ingress:
   annotations:
     alb.ingress.kubernetes.io/scheme: internal
 externalSecrets:
+  enabled: true
   data:
     - secretKey: FLASK_API_KEY
       remoteKey: staging/flask/api-key
+      
 aws:
-  region: ""
+  region: "eu-north-1"
+
 resourceQuota:
   enabled: true
   hard:
@@ -27,3 +30,10 @@ resourceQuota:
     requests.cpu: 1
     limits.memory: 1Gi
     limits.cpu: 2
+
+networkPolicy:
+  enabled: true
+  denyEgress: true
+  allowedCidrs:
+    - "10.0.4.0/24"
+    - "10.0.5.0/24"

@@ -15,9 +15,11 @@ ingress:
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
 externalSecrets:
+  enabled: true
   data:
     - secretKey: FLASK_API_KEY
       remoteKey: production/flask/api-key
+      
 aws:
   region: ""
 resourceQuota:

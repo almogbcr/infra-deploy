@@ -1,7 +1,10 @@
-.venv
+.venv/
 .env
 *.env
 .env.*
 install/
 __pycache__/
 .terraform/
+.terragrunt-cache/
+*.tfstate
+*.tfstate.*
