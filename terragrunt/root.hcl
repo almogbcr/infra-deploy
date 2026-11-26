@@ -14,7 +14,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "${get_env("AWS_REGION", "us-east-1")}"
+  region = "${get_env("AWS_REGION")}"
 }
 EOF
 }
