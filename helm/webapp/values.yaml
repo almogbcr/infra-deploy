@@ -40,8 +40,14 @@ ingress:
 
 externalSecrets:
   enabled: false
+
 aws:
   region: ""
 
 resourceQuota:
   enabled: false
+
+networkPolicy:
+  enabled: false
+  denyEgress: false
+  allowedCidrs: []
