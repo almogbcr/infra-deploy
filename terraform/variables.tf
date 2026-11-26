@@ -9,8 +9,23 @@ variable "project_name" {
   default     = "infra-deploy"
 }
 
-variable "vpc_cidr" {
-  description = "VPC CIDR block"
-  type        = string
-  default     = "10.0.0.0/20"
+variable "dev" {
+  type = object({
+    env            = string
+    vpc_cidr       = string
+    subnet_private = list(string)
+    subnet_public  = list(string)
+  })
 }
+
+
+variable "prod" {
+  type = object({
+    env            = string
+    vpc_cidr       = string
+    subnet_private = list(string)
+    subnet_public  = list(string)
+  })
+}
+
+
