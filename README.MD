@@ -107,9 +107,9 @@ followed by AWS resource verification.
 | Component | Documentation |
 |-----------|---------------|
 | Application & Docker | [README](app/README.MD) |
-| GitHub Actions | [README](.github/CI-CD.md) |
-| Helm | [README](helm/README.md) |
-| Argo CD | [README](argocd/README.md) |
-| Terraform | [README](terraform/README.md) |
-| Terragrunt | [README](terragrunt/README.md) |
-| Deployment Scripts | [README](scripts/README.md) |
+| GitHub Actions | [README](.github/CI-CD.MD) |
+| Helm | [README](helm/README.MD) |
+| Argo CD | [README](argocd/README.MD) |
+| Terraform | [README](terraform/README.MD) |
+| Terragrunt | [README](terragrunt/README.MD) |
+| Deployment Scripts | [README](scripts/README.MD) |
