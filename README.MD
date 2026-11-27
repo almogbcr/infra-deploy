@@ -107,7 +107,7 @@ followed by AWS resource verification.
 | Component | Documentation |
 |-----------|---------------|
 | Application & Docker | [README](app/README.MD) |
-| GitHub Actions | [README](.github/README.md) |
+| GitHub Actions | [README](.github/CI-CD.md) |
 | Helm | [README](helm/README.md) |
 | Argo CD | [README](argocd/README.md) |
 | Terraform | [README](terraform/README.md) |
