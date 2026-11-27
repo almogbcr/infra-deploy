@@ -7,6 +7,8 @@ metadata:
     app: {{ .Release.Name }}
 spec:
   replicas: {{ .Values.app.replicas }}
+  strategy:
+    {{- toYaml .Values.app.strategy | nindent 4 }}
   selector:
     matchLabels:
       app: {{ .Release.Name}}
@@ -15,13 +17,31 @@ spec:
       labels:
         app: {{ .Release.Name }}
     spec:
+      terminationGracePeriodSeconds: {{ .Values.app.terminationGracePeriodSeconds }}
+
       serviceAccountName: {{ .Release.Name }}-{{ .Release.Namespace }}-sa
+
+      {{- if .Values.app.topologySpread.enabled }}
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.app.topologySpread.maxSkew }}
+          topologyKey: {{ .Values.app.topologySpread.topologyKey }}
+          whenUnsatisfiable: {{ .Values.app.topologySpread.whenUnsatisfiable }}
+          nodeTaintsPolicy: {{ .Values.app.topologySpread.nodeTaintsPolicy }}
+          labelSelector:
+            matchLabels:
+              app: {{ .Release.Name }}
+      {{- end }}
+
       containers:
         - name: {{ .Release.Name }}
           image: "{{ .Values.app.image.imageRepo }}:{{ required "Image tag is missing. Check that the correct environment values file was provided using -f" .Values.app.image.imageTag }}"
           imagePullPolicy: {{ .Values.app.image.imagePullPolicy  }}
+
           ports:
             - containerPort: {{ .Values.app.ports.containerPort }}
+
+          lifecycle:
+            {{- toYaml .Values.app.lifecycle | nindent 12 }}
 
           resources:
             {{- toYaml .Values.app.resources | nindent 12}}

@@ -1,10 +1,18 @@
 app:
+  replicas: 1
+
   image:
     imageRepo: almogbcr/flask-app
     imagePullPolicy: IfNotPresent
 
   ports:
     containerPort: 5050
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
 
   readinessProbe:
     httpGet:
@@ -30,11 +38,26 @@ app:
     APP_ENV: "__NAMESPACE__"
     APP_MESSAGE: "Hello From __NAMESPACE__"
     LOG_LEVEL: INFO
+  
+  topologySpread:
+    enabled: false
+    maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: DoNotSchedule
+    nodeTaintsPolicy: Honor
+
+  terminationGracePeriodSeconds: 60
+
+  lifecycle:
+    preStop:
+      exec:
+        command: ["sleep", "15"]
 
 ingress:
   className: alb
   host: ""
   annotations:
+    alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/healthcheck-path: /health
 
