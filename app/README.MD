@@ -1,24 +1,52 @@
- ### Docker
-* Used python:3.14-slim as the base image.
-* Set the working directory to /opt/infradeploy/flask. The /opt directory is commonly used in Linux for optional or third-party applications.
-* Copied and installed requirements.txt before copying the application code to take advantage of Docker's build cache and avoid reinstalling dependencies when only the application code changes.
-* Copied the application files into the image using COPY . ..
-* Used EXPOSE 5050 to document the port used by the application.
-* Used CMD to start Gunicorn, bind it to port 5050, and run the Flask application from app.py.
+# Application & Docker
 
-### Docker Image Testing
-Built and tested the docker image locally using docker
+## Application
 
-* build the image using Docker build
+Flask application that runs on port 5050.
+
+The application has three endpoints:
+
+* `/` - Returns the application message, environment, and log level.
+* `/health` - Returns the health status with HTTP 200.
+* `/version` - Returns the version of the app.
+
+## Dockerfile
+
+* Used `python:3.14-slim` as the base image.
+* Set the working directory to `/opt/infradeploy/flask`.
+* Installed `requirements.txt` before copying the application code
+  to take advantage of Docker's build cache.
+* Used `--no-cache-dir` to avoid storing pip cache inside the image.
+* Copied the application files using `COPY . .`.
+* Used `EXPOSE 5050` to document the application port.
+* Used `CMD` to start Gunicorn and bind it to `0.0.0.0:5050`.
+
+## Local Testing
+
+Run the following commands from the `app` directory.
+
+Build the image:
+
 ```bash
-docker build -t flask-app:1.0 .
+docker build -t flask-app:local .
 ```
-* run docker image as detach Docker run
+
+Run the container:
+
 ```bash
-docker run -d --name flaskapp -p 5050:5050 flask-app:1.0 
+docker run -d --name flaskapp --rm -p 5050:5050 flask-app:local
 ```
-* Tested the app with curl
+
+Test the application endpoints:
+
 ```bash
+curl -i http://localhost:5050/
 curl -i http://localhost:5050/health
+curl -i http://localhost:5050/version
 ```
-* HTTP 200 With a healthy status
+
+Stop the container:
+
+```bash
+docker stop flaskapp
+```

@@ -8,33 +8,108 @@ DevOps technical assignment - build and deploy Flask application while using mod
 
 Flask application that runs on port 5050.
 
-App has two endpoints:
+App has three endpoints:
  
-* /       - returns "DevOps Assignment" 
-* /health - returns a health status with HTTP 200.
+* /         - Returns the application message, environment, and log level.
+* /health   - returns a health status with HTTP 200.
+* /version  - returns the version of the app
  
-For Docker setup and local testing, see [Application README](app/README.MD)
+## Technology Stack
 
-## CI - GitHub Actions
+* **Python / Flask** - Application development.
+* **Gunicorn** - WSGI application server.
+* **Docker** - Application containerization.
+* **Docker Hub** - Container image registry.
+* **GitHub Actions** - CI/CD automation and image promotion.
+* **Ruff** - Python code linting.
+* **Pytest** - Automated application testing.
+* **Kubernetes / Amazon EKS** - Container orchestration.
+* **Helm** - Kubernetes application packaging and configuration.
+* **Argo CD** - GitOps-based continuous delivery.
+* **Terraform** - Infrastructure provisioning using IaC.
+* **Terragrunt** - Terraform configuration and dependency management.
+* **AWS VPC** - Cloud networking and environment isolation.
+* **AWS IAM** - Identity and access management.
+* **AWS Load Balancer Controller** - Application ingress and traffic routing.
+* **AWS Secrets Manager** - Secure storage of application secrets.
+* **External Secrets Operator** - Synchronization of AWS secrets into Kubernetes.
 
-### Flask CI
+## Architecture
 
-The workflow is separated into 3 jobs:
+The infrastructure consists of two isolated Amazon EKS clusters,
+each deployed in a separate VPC.
 
-**1. Changes**
-- Checks if relevant files in the `app/` directory have changed.
-- Excludes Markdown files.
-- Runs in parallel with the Tests job.
+* **DEV Cluster** - Hosts the Development and Staging environments
+  in separate Kubernetes namespaces.
+* **PROD Cluster** - Hosts the Production environment in a dedicated
+  Kubernetes cluster.
 
-**2. Tests**
-- Uses Ruff to check Python code for common issues.
-- Uses Pytest to run the application tests.
-- Runs in parallel with the Changes job.
+This architecture provides infrastructure isolation between
+production and non-production environments.
 
-**3. Build**
-- Runs after both jobs finish successfully, and only if relevant application files have changed.
-- Builds the Flask Docker image.
-- Runs the container and checks the `/health` endpoint.
-- Pushes the image to Docker Hub if the health check passes.
+Each cluster uses Argo CD for GitOps-based deployments,
+AWS Load Balancer Controller for application ingress, and
+External Secrets Operator for secret management.
+
+```mermaid
+flowchart TD
+    AWS[AWS Cloud - eu-north-1]
+    AWS --> DEV[DEV VPC / EKS Cluster]
+    AWS --> PROD[PROD VPC / EKS Cluster]
+    DEV --> D[Development]
+    DEV --> S[Staging]
+    PROD --> P[Production]
+
+    classDef cloud fill:#334155,color:#fff,stroke:#64748b
+    classDef dev fill:#1d4ed8,color:#fff,stroke:#60a5fa
+    classDef staging fill:#92400e,color:#fff,stroke:#f59e0b
+    classDef prod fill:#166534,color:#fff,stroke:#4ade80
+
+    class AWS cloud
+    class DEV,D dev
+    class S staging
+    class PROD,P prod
+```
+
+## CI/CD
+
+The CI/CD process is managed using GitHub Actions and Argo CD.
+
+* Dev - Automated testing, image build, and deployment.
+* Staging - Controlled image promotion through a Pull Request.
+* Prod - Controlled image promotion following manual approval.
+
+The pipeline follows the Build Once, Deploy Many principle,
+promoting the same Docker image across all environments
+without rebuilding it.
+
+Argo CD manages application deployments by synchronizing
+the desired configuration from Git to Kubernetes.
+
+## Deployment
+
+The infrastructure is provisioned using Terraform and Terragrunt.
+
+The deployment process includes:
+
+* Provisioning AWS networking and EKS clusters.
+* Installing Kubernetes add-ons.
+* Setting up Argo CD and its applications.
+* Deploying the application using GitOps.
+* Verifying application availability.
+
+Infrastructure cleanup is managed through Terragrunt,
+followed by AWS resource verification.
 
 
+## Documentation
+
+| Component | Documentation |
+|-----------|---------------|
+| Application & Docker | [README](app/README.MD) |
+| GitHub Actions | [README](.github/README.md) |
+| Helm | [README](helm/README.md) |
+| Argo CD | [README](argocd/README.md) |
+| Terraform | [README](terraform/README.md) |
+| Terragrunt | [README](terragrunt/README.md) |
+| Deployment Scripts | [README](scripts/README.md) |

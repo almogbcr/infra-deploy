@@ -1,15 +1,15 @@
-name: Flask CI
+name: Flask CI Build and Deploy to Dev
 
 on:
   push:
     branches:
-      - main
       - dev
     paths:
     - 'app/**'
     - 'tests/**'
     - '.github/workflows/ci.yaml'
     - '!**/*.MD'
+    - '!**/*.md'
   workflow_dispatch:
 jobs:
   changes:
@@ -30,6 +30,7 @@ jobs:
             app:
               - 'app/**'
               - '!**/*.MD'
+              - '!**/*.md'
   tests:
     runs-on: ubuntu-24.04
     steps:

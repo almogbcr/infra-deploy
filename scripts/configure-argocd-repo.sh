@@ -3,10 +3,10 @@ set -euo pipefail
 
 CONTEXT="${1:?Usage: $0 <kube-context>}"
 
-REPO_URL="https://github.com/almogbcr/infra-deploy.git"
-APP_ID="5948959"
-INSTALLATION_ID="186409891"
-PRIVATE_KEY="$HOME/.ssh/github-app.pem"
+REPO_URL="${ARGOCD_REPO_URL:?Missing repository URL}"
+APP_ID="${GITHUB_APP_ID:?Missing GitHub App ID}"
+INSTALLATION_ID="${GITHUB_APP_INSTALLATION_ID:?Missing Installation ID}"
+PRIVATE_KEY="${GITHUB_APP_PRIVATE_KEY:?Missing private key path}"
 
 kubectl --context "$CONTEXT" -n argocd create secret generic github-app-repo \
   --from-literal=type=git \
