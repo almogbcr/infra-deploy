@@ -26,8 +26,8 @@ App has three endpoints:
 * **Kubernetes / Amazon EKS** - Container orchestration.
 * **Helm** - Kubernetes application packaging and configuration.
 * **Argo CD** - GitOps-based continuous delivery.
-* **OpenTofu** - Infrastructure provisioning using IaC.
-* **Terragrunt** - OpenTofu configuration and dependency management.
+* **Terraform** - Infrastructure provisioning using IaC.
+* **Terragrunt** - Terraform configuration and dependency management.
 * **AWS VPC** - Cloud networking and environment isolation.
 * **AWS IAM** - Identity and access management.
 * **AWS Load Balancer Controller** - Application ingress and traffic routing.

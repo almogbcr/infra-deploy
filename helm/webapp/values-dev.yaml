@@ -1,7 +1,6 @@
 app:
   replicas: 1
-  image:
-    imageTag: 6f6be62
+
   resources:
     requests:
       cpu: "100m"
@@ -9,18 +8,23 @@ app:
     limits:
       cpu: "600m"
       memory: "128Mi"
+
   env:
     LOG_LEVEL: DEBUG
+
 ingress:
   annotations:
     alb.ingress.kubernetes.io/scheme: internal
+
 externalSecrets:
   enabled: true
   data:
     - secretKey: FLASK_API_KEY
       remoteKey: dev/flask/api-key
+
 aws:
   region: "eu-north-1"
+
 resourceQuota:
   enabled: true
   hard:
@@ -28,12 +32,14 @@ resourceQuota:
     requests.cpu: 1
     limits.memory: 1Gi
     limits.cpu: 2
+
 networkPolicy:
   enabled: true
   denyEgress: true
   allowedCidrs:
     - "10.0.4.0/24"
     - "10.0.5.0/24"
+
 rbac:
   enabled: true
   allowPodDeletion: true

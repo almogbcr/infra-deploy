@@ -9,13 +9,20 @@ spec:
 
   source:
     repoURL: https://github.com/almogbcr/infra-deploy.git
-    targetRevision: dev
+    targetRevision: main
     path: helm/webapp
 
     helm:
       releaseName: webapp
       valueFiles:
         - values-dev.yaml
+      parameters:
+        - name: app.image.imageRepo
+          value: almogbcr/flask-app
+          forceString: true
+        - name: app.image.imageDigest
+          value: "sha256:6e4f360218f8d10e12bfe24c0d760d79ae4ba506abff36aadbd824140e2a4cde"
+          forceString: true
 
   destination:
     server: https://kubernetes.default.svc

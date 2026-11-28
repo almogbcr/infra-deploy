@@ -1,36 +1,40 @@
-name: Flask CI Build and Deploy to Dev
+name: CI
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
-      - dev
-    paths:
-    - 'app/**'
-    - 'tests/**'
-    - '.github/workflows/ci.yaml'
-    - '!**/*.MD'
-    - '!**/*.md'
+      - main
+
   workflow_dispatch:
+
 permissions:
   contents: read
 jobs:
   changes:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
-      app: ${{ steps.filter.outputs.app}}
+      release: ${{ steps.filter.outputs.release }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      
-      - name: check changed files
+      - name: Detect release changes
         id: filter
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         with:
           base: ${{ github.ref }}
-          predicate-quantifier: 'some-with-excludes'
+          predicate-quantifier: some-with-excludes
           filters: |
-            app:
+            release:
               - 'app/**'
+              - 'tests/**'
+              - 'helm/webapp/**'
+              - '.github/workflows/ci.yaml'
               - '!**/*.MD'
               - '!**/*.md'
   tests:
@@ -38,7 +42,6 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
       - name: Setup Python for test
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
@@ -52,18 +55,57 @@ jobs:
       - name: run tests for flask
         run: python -m pytest -v tests/flask_test.py
 
-  build: 
-    needs: [changes, tests]
-    if: github.ref == 'refs/heads/dev' && (needs.changes.outputs.app == 'true' || github.event_name == 'workflow_dispatch')
+  helm:
     runs-on: ubuntu-24.04
-    permissions:
-      contents: write
     steps:
       - name: Checkout repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Get Short SHA
-        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+      - name: Set up Helm
+        uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
+        with:
+          version: v3.22.0
+          checksum-policy: required
+
+      - name: Validate all environment charts
+        shell: bash
+        env:
+          RENDER_TEST_DIGEST: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        run: |
+          for environment in dev staging prod; do
+            namespace="$environment"
+            if [[ "$environment" == "prod" ]]; then
+              namespace="production"
+            fi
+
+            helm lint helm/webapp \
+              -f "helm/webapp/values-$environment.yaml" \
+              --set-string "app.image.imageDigest=$RENDER_TEST_DIGEST"
+
+            helm template webapp helm/webapp \
+              --namespace "$namespace" \
+              -f "helm/webapp/values-$environment.yaml" \
+              --set-string "app.image.imageDigest=$RENDER_TEST_DIGEST" \
+              > "$RUNNER_TEMP/webapp-$environment.yaml"
+          done
+
+  build: 
+    needs: [changes, tests, helm]
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (
+        (github.event_name == 'push' && needs.changes.outputs.release == 'true') ||
+        github.event_name == 'workflow_dispatch'
+      )
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set image tag
+        shell: bash
+        run: |
+          echo "IMAGE_TAG=${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_ENV"
 
       - name: Dockerhub Login
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
@@ -72,50 +114,62 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN}}
 
       - name: Build Docker Image
-        run: docker build -t flask-app:${{ env.SHORT_SHA }} ./app
-      
+        run: docker build -t flask-app:${{ env.IMAGE_TAG }} ./app
+
       - name: Run Docker Container
-        run: docker run -d --name flaskapp -p 5050:5050 flask-app:${{ env.SHORT_SHA }}
+        run: docker run -d --name flaskapp -p 5050:5050 flask-app:${{ env.IMAGE_TAG }}
 
       - name: Check Flask Health
         run: |
             for i in {1..10}; do
             status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5050/health || true)
-
             if [ "$status" = "200" ]; then
             echo "Health check passed - HTTP 200"
             exit 0
             fi
-
             echo "Flask not ready - HTTP $status"
             sleep 2
             done
-
             echo "Health check failed"
             docker logs flaskapp
             exit 1
-
       - name: Push Docker Image
         run: |
-          docker tag flask-app:${{ env.SHORT_SHA }} ${{ vars.DOCKERHUB_USERNAME }}/flask-app:${{ env.SHORT_SHA }}
-          docker push ${{ vars.DOCKERHUB_USERNAME }}/flask-app:${{ env.SHORT_SHA }}
-
-      - name: Update Dev image tag
-        if: github.ref == 'refs/heads/dev'
-        uses: mikefarah/yq@a4330671f17776618660a419ab2531e4f4dc48b6 # v4.54.2
-        with:
-          cmd: yq -i '.app.image.imageTag = strenv(SHORT_SHA)' helm/webapp/values-dev.yaml
-
-      - name: Commit and Push Dev image tag
-        if: github.ref == 'refs/heads/dev'
+          docker tag flask-app:${{ env.IMAGE_TAG }} ${{ vars.DOCKERHUB_USERNAME }}/flask-app:${{ env.IMAGE_TAG }}
+          docker push ${{ vars.DOCKERHUB_USERNAME }}/flask-app:${{ env.IMAGE_TAG }}
+      
+      - name: Create release metadata
+        shell: bash
+        env:
+          IMAGE_REPOSITORY: ${{ vars.DOCKERHUB_USERNAME }}/flask-app
         run: |
-          FILE="helm/webapp/values-dev.yaml"
+          image_digest=$(
+            docker buildx imagetools inspect \
+              "$IMAGE_REPOSITORY:$IMAGE_TAG" \
+              --format '{{json .Manifest}}' |
+            jq -er '.digest | select(test("^sha256:[0-9a-f]{64}$"))'
+          )
 
-          if ! git diff --quiet -- "$FILE"; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-            git add "$FILE"
-            git commit -m "ci: update dev image to ${SHORT_SHA}"
-            git push origin HEAD:dev
-          fi
+          jq -n \
+            --arg sourceRevision "$GITHUB_SHA" \
+            --arg imageRepository "$IMAGE_REPOSITORY" \
+            --arg imageDigest "$image_digest" \
+            --arg imageTag "$IMAGE_TAG" \
+            --arg runId "$GITHUB_RUN_ID" \
+            --arg runAttempt "$GITHUB_RUN_ATTEMPT" \
+            '{
+              schemaVersion: 1,
+              sourceRevision: $sourceRevision,
+              imageRepository: $imageRepository,
+              imageDigest: $imageDigest,
+              imageTag: $imageTag,
+              runId: $runId,
+              runAttempt: $runAttempt
+            }' > release.json
+      - name: Upload release metadata
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release.json
+          if-no-files-found: error
+          retention-days: 90

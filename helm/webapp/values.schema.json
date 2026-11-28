@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["app"],
+  "properties": {
+    "app": {
+      "type": "object",
+      "required": ["image"],
+      "properties": {
+        "image": {
+          "type": "object",
+          "required": ["imageDigest"],
+          "properties": {
+            "imageDigest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "description": "Immutable container image digest."
+            }
+          }
+        }
+      }
+    }
+  }
+}

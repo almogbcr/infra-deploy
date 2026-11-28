@@ -1,0 +1,193 @@
+name: Promotion
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+
+      ci_run_id:
+        description: Successful CI workflow run ID
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    outputs:
+      source_revision: ${{ steps.release.outputs.source_revision }}
+      image_repository: ${{ steps.release.outputs.image_repository }}
+      image_digest: ${{ steps.release.outputs.image_digest }}
+    steps:
+      - name: Validate CI run
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_RUN_ID: ${{ inputs.ci_run_id }}
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "Promotion must run from main."
+            exit 1
+          fi
+
+          if [[ ! "$CI_RUN_ID" =~ ^[0-9]+$ ]]; then
+            echo "CI run ID must contain digits only."
+            exit 1
+          fi
+
+          gh api \
+            "repos/$GITHUB_REPOSITORY/actions/runs/$CI_RUN_ID" \
+            > "$RUNNER_TEMP/ci-run.json"
+
+          if ! jq -e '
+              .path == ".github/workflows/ci.yaml" and
+              .head_branch == "main" and
+              (.event == "push" or .event == "workflow_dispatch") and
+              .status == "completed" and
+              .conclusion == "success"
+            ' "$RUNNER_TEMP/ci-run.json" > /dev/null; then
+            echo "The selected run is not an eligible successful CI run."
+            exit 1
+          fi
+
+          echo "CI run validated."
+
+      - name: Download release metadata
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_RUN_ID: ${{ inputs.ci_run_id }}
+        run: |
+          run_attempt=$(jq -er '.run_attempt' "$RUNNER_TEMP/ci-run.json")
+          gh run download "$CI_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "release-$CI_RUN_ID-$run_attempt" \
+            --dir "$RUNNER_TEMP/release-metadata"
+
+      - name: Validate release metadata
+        id: release
+        shell: bash
+        env:
+          EXPECTED_IMAGE_REPOSITORY: almogbcr/flask-app
+        run: |
+          release_file="$RUNNER_TEMP/release-metadata/release.json"
+          if ! jq -e \
+            --slurpfile ci "$RUNNER_TEMP/ci-run.json" \
+            --arg repository "$EXPECTED_IMAGE_REPOSITORY" '
+              .schemaVersion == 1 and
+              .sourceRevision == $ci[0].head_sha and
+              (.sourceRevision | test("^[0-9a-f]{40}$")) and
+              .runId == ($ci[0].id | tostring) and
+              .runAttempt == ($ci[0].run_attempt | tostring) and
+              .imageRepository == $repository and
+              (.imageDigest | test("^sha256:[0-9a-f]{64}$")) and
+              .imageTag == "\(.sourceRevision)-\(.runId)-\(.runAttempt)"
+            ' "$release_file" > /dev/null; then
+            echo "Release metadata does not match the CI run or allowed image repository."
+            exit 1
+          fi
+
+          jq -r '"source_revision=\(.sourceRevision)\nimage_repository=\(.imageRepository)\nimage_digest=\(.imageDigest)"' \
+            "$release_file" >> "$GITHUB_OUTPUT"
+
+      - name: Verify published image
+        shell: bash
+        env:
+          IMAGE_REPOSITORY: ${{ steps.release.outputs.image_repository }}
+          IMAGE_DIGEST: ${{ steps.release.outputs.image_digest }}
+        run: docker buildx imagetools inspect "$IMAGE_REPOSITORY@$IMAGE_DIGEST"
+
+  promote:
+    needs: validate
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: promotion-${{ inputs.environment }}
+      cancel-in-progress: false
+    env:
+      TARGET_ENVIRONMENT: ${{ inputs.environment }}
+      SOURCE_REVISION: ${{ needs.validate.outputs.source_revision }}
+      IMAGE_REPOSITORY: ${{ needs.validate.outputs.image_repository }}
+      IMAGE_DIGEST: ${{ needs.validate.outputs.image_digest }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: main
+
+      - name: Check promotion order and update Application
+        id: update
+        uses: mikefarah/yq@a4330671f17776618660a419ab2531e4f4dc48b6 # v4.54.2
+        with:
+          cmd: |
+            set -eu
+
+            case "$TARGET_ENVIRONMENT" in
+              dev)
+                application="argocd/dev-cluster/apps/webapp-dev.yaml"
+                previous=""
+                ;;
+              staging)
+                application="argocd/dev-cluster/apps/webapp-staging.yaml"
+                previous="argocd/dev-cluster/apps/webapp-dev.yaml"
+                ;;
+              production)
+                application="argocd/prod-cluster/apps/webapp-production.yaml"
+                previous="argocd/dev-cluster/apps/webapp-staging.yaml"
+                ;;
+              *) echo "Unknown target environment." >&2; exit 1 ;;
+            esac
+
+            if [ -n "$previous" ]; then
+              yq -e '
+                .spec.source.targetRevision == strenv(SOURCE_REVISION) and
+                (.spec.source.helm.parameters[] | select(.name == "app.image.imageRepo") | .value) == strenv(IMAGE_REPOSITORY) and
+                (.spec.source.helm.parameters[] | select(.name == "app.image.imageDigest") | .value) == strenv(IMAGE_DIGEST)
+              ' "$previous" > /dev/null || {
+                echo "Promote this exact release to the previous environment first." >&2
+                exit 1
+              }
+            fi
+
+            yq -i '
+              .spec.source.targetRevision = strenv(SOURCE_REVISION) |
+              .spec.source.helm.parameters = (
+                (.spec.source.helm.parameters // [] |
+                  map(select(.name != "app.image.imageRepo" and .name != "app.image.imageDigest"))) +
+                [
+                  {"name": "app.image.imageRepo", "value": strenv(IMAGE_REPOSITORY), "forceString": true},
+                  {"name": "app.image.imageDigest", "value": strenv(IMAGE_DIGEST), "forceString": true}
+                ]
+              )
+            ' "$application"
+
+            echo "$application"
+
+      - name: Create promotion pull request
+        uses: peter-evans/create-pull-request@3ffccacd46053766916f087ce41d627c0b8cf2d1 # v8.1.3
+        with:
+          base: main
+          branch: promote-${{ inputs.environment }}-${{ github.run_id }}-${{ github.run_attempt }}
+          add-paths: ${{ steps.update.outputs.result }}
+          commit-message: "Promote ${{ inputs.environment }} to ${{ needs.validate.outputs.source_revision }}"
+          title: "Promote ${{ inputs.environment }} to ${{ needs.validate.outputs.source_revision }}"
+          body: |
+            Environment: ${{ inputs.environment }}
+            Configuration commit: ${{ needs.validate.outputs.source_revision }}
+            Image: ${{ needs.validate.outputs.image_repository }}@${{ needs.validate.outputs.image_digest }}
+            CI run: https://github.com/${{ github.repository }}/actions/runs/${{ inputs.ci_run_id }}
+
+            Before merging, confirm the previous environment is healthy
+            and its smoke tests passed.
