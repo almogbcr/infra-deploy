@@ -9,14 +9,6 @@ export AWS_PAGER=""
 PUBLIC_IP=$(curl -fsS https://checkip.amazonaws.com)
 export EKS_API_CIDR="$PUBLIC_IP/32"
 
-# Optional GitHub App authentication
-USE_GITHUB_APP="${USE_GITHUB_APP:-false}"
-
-if [[ "$USE_GITHUB_APP" == "true" ]]; then
-    source "$HOME/.config/infra-deploy/argocd.env"
-    test -r "$GITHUB_APP_PRIVATE_KEY"
-fi
-
 # Pre-flight checks
 aws sts get-caller-identity
 
@@ -65,16 +57,47 @@ for ENV in dev staging production; do
     fi
 done
 
+# Wait for a child Application to exist, synchronize and become healthy.
+wait_for_application() {
+    local CONTEXT="$1"
+    local APPLICATION="$2"
+    local DEADLINE=$((SECONDS + 900))
+    local STATUS
+
+    while (( SECONDS < DEADLINE )); do
+        STATUS=$(kubectl --context "$CONTEXT" -n argocd get application "$APPLICATION" \
+          --ignore-not-found --request-timeout=30s \
+          -o jsonpath='{.status.sync.status} {.status.health.status}')
+
+        if [[ "$STATUS" == "Synced Healthy" ]]; then
+            echo "$APPLICATION is Synced and Healthy."
+            return 0
+        fi
+
+        echo "Waiting for $APPLICATION: ${STATUS:-not created yet}"
+        sleep 10
+    done
+
+    echo "ERROR: Timed out waiting for $APPLICATION in $CONTEXT." >&2
+    kubectl --context "$CONTEXT" -n argocd get applications --request-timeout=30s
+    return 1
+}
+
 # Configure Argo CD and deploy applications
 for ENV in dev prod; do
     aws eks update-kubeconfig --name "$ENV-eks" --alias "$ENV-eks"
 
-    if [[ "$USE_GITHUB_APP" == "true" ]]; then
-        ./scripts/configure-argocd-repo.sh "$ENV-eks"
-    fi
-
     kubectl --context "$ENV-eks" apply \
       -f "argocd/$ENV-cluster/root.yaml"
 
+    if [[ "$ENV" == "dev" ]]; then
+        wait_for_application "$ENV-eks" webapp-dev
+        wait_for_application "$ENV-eks" webapp-staging
+    else
+        wait_for_application "$ENV-eks" webapp-production
+    fi
+
     kubectl --context "$ENV-eks" get applications -n argocd
 done
+
+echo "Deployment completed: all three Applications are Synced and Healthy."

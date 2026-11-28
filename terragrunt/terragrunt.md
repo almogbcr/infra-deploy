@@ -28,7 +28,7 @@ terragrunt/
 The root.hcl file contains the shared Terraform configuration.
 
 * AWS Provider configuration.
-* Terraform local backend configuration.
+* Terraform S3 remote backend configuration with state locking.
 
 The AWS region is provided through an environment variable.
 
@@ -70,10 +70,12 @@ the Kubernetes controllers and infrastructure.
 
 ## State Management
 
-Each Terragrunt unit has its own local Terraform State file.
+Each Terragrunt unit stores state in S3 under its own key:
+`<environment>/<unit>/terraform.tfstate`.
 
-State files are excluded from Git to avoid exposing
-sensitive infrastructure information.
+The bucket name and AWS region are supplied through `TF_STATE_BUCKET` and
+`AWS_REGION`. Encryption and S3 lock files (`use_lockfile = true`) are enabled
+in `root.hcl`. Terragrunt is configured to run Terraform explicitly.
 
-A remote backend would be preferred in a shared
-production environment.
+Local state files and caches are excluded from Git. Cleanup intentionally
+retains the S3 state bucket.

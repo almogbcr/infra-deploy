@@ -100,28 +100,34 @@ and destroyed when it is no longer needed to minimize costs.
 
 ## CI/CD
 
-The CI/CD process is managed using GitHub Actions and Argo CD.
+The project uses one long-lived source branch, `main`, and two workflows:
 
-* Dev - Automated testing, image build, and deployment
-  after successful CI workflow completion.
+* **CI** - Runs Python and Helm checks for pull requests and pushes to main.
+  Relevant changes on main, or a manual run on main, also build, smoke-test
+  and publish an image to Docker Hub with release metadata.
+* **Promotion** - Runs manually with a target environment and a successful
+  CI run ID. It opens a Pull Request that updates only the selected
+  Argo CD Application.
 
-* Staging - Automatically promoted after merging a
-  Pull Request from the dev branch into main.
+A release combines a Git commit containing the Helm chart and configuration
+with an immutable image digest. Promotion reuses that image across
+Development, Staging and Production without rebuilding it.
 
-* Prod - Deployment requires two manual steps:
-  1. Running the production promotion workflow to create a Pull Request.
-  2. Reviewing and merging the Pull Request into main.
+Each environment tracks its own pinned Git commit. Root Applications track
+main to pick up merged promotion changes. Editing Helm files on main alone
+does not update an environment until its pinned revision is promoted.
 
-The pipeline follows the Build Once, Deploy Many principle,
-promoting the same Docker image across all environments
-without rebuilding it.
+Staging requires the same release to be recorded in Development first;
+Production requires it in Staging first. Review and merge the promotion PR
+after checking the previous environment's health. The workflow checks Git
+configuration, not live cluster health. Required reviewer approval must be
+enforced separately through GitHub repository rules.
 
-Argo CD manages application deployments by synchronizing
-the desired configuration from Git to Kubernetes.
+See [CI/CD](.github/CI-CD.MD) for promotion and rollback instructions.
 
 ## Deployment
 
-The infrastructure is provisioned using OpenTufu and Terragrunt.
+The infrastructure is provisioned using Terraform and Terragrunt.
 
 The deployment process includes:
 
@@ -134,6 +140,14 @@ The deployment process includes:
 Infrastructure cleanup is managed through Terragrunt,
 followed by AWS resource verification.
 
+
+## TLS Strategy
+
+The demo uses HTTP. For HTTPS, we would terminate TLS at the ALB using an
+ACM certificate and redirect HTTP to HTTPS. The ALB would forward traffic
+to the Pods over HTTP.
+
+See [Helm](helm/webapp/helm.md#tls-termination-strategy) for the planned setup.
 
 ## Documentation
 

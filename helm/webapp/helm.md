@@ -25,13 +25,15 @@ Helm is also used to install the following Kubernetes add-ons:
 helm/
 └── webapp
     ├── Chart.yaml
-    ├── README.MD
+    ├── helm.md
+    ├── values.schema.json
     ├── templates
     │   ├── configmap.yaml
     │   ├── deployment.yaml
     │   ├── externalsecret.yaml
     │   ├── ingress.yaml
     │   ├── networkpolicy.yaml
+    │   ├── rbac.yaml
     │   ├── resourcequota.yaml
     │   ├── secretstore.yaml
     │   ├── serviceaccount.yaml
@@ -44,6 +46,7 @@ helm/
 
 * Chart.yaml - Contains the chart metadata, such as name and version.
 * values.yaml - Contains the default configuration.
+* values.schema.json - Requires an image digest in SHA-256 format.
 * values-dev.yaml - Development configuration.
 * values-staging.yaml - Staging configuration.
 * values-prod.yaml - Production configuration.
@@ -60,8 +63,20 @@ In values.yaml we manage the default configuration for all environments.
 All environments use the same Docker Hub repository and application port,
 but these values can be overridden if needed.
 
-The image is pulled only if it is not already available on the node
-using the IfNotPresent policy.
+Images use `app.image.imageRepo@sha256:...` with the IfNotPresent policy.
+The image repository and digest are supplied by the Argo CD Application,
+not stored as image tags in the environment values files. The schema validates
+digest format; it does not prove the image exists or passed tests.
+
+For local rendering, provide a digest explicitly:
+
+```bash
+helm template webapp helm/webapp --namespace dev \
+  -f helm/webapp/values-dev.yaml \
+  --set-string app.image.imageDigest=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+```
+
+This example digest is only a rendering fixture, not a deployable release.
 
 The default number of replicas is set to 1 and can be overridden
 for each environment.
@@ -115,6 +130,11 @@ Environment variables are passed to the Flask application using a ConfigMap.
 
 These values can be overridden for each environment.
 
+The Deployment's Pod template includes a checksum of the rendered ConfigMap.
+A promoted ConfigMap change therefore triggers a rolling update so new Pods
+receive the updated environment variables. This does not guarantee a healthy
+application or automatically roll back a failed rollout.
+
 #### Ingress Configuration
 Ingress is a Kubernetes resource that defines how external HTTP
 and HTTPS traffic is routed to Services inside the cluster.
@@ -142,6 +162,16 @@ to allow existing requests to complete.
 ALB Pod Readiness Gates are enabled through Argo CD
 to ensure new Pods are healthy in the ALB before
 they are considered ready by Kubernetes.
+
+#### TLS Termination Strategy
+
+For this demo, the application uses HTTP.
+
+For HTTPS, we would use a custom domain and an ACM certificate in the same
+region as the ALB. TLS would terminate at the ALB, with HTTP redirected to
+HTTPS. Traffic from the ALB to the Pods would remain HTTP on port 5050.
+
+This is the planned setup; TLS is not implemented in the demo.
 
 #### External Secrets
 
@@ -198,7 +228,7 @@ and configured separately for each environment.
 
 Development is used for testing new application versions.
 
-* Image tag is updated automatically by GitHub Actions.
+* Image digest and configuration revision are selected through a manual promotion PR.
 * DEBUG log level for easier troubleshooting.
 * Internal ALB for restricted application access.
 * Environment-specific secrets, resource quotas and network policies.
@@ -208,7 +238,7 @@ Development is used for testing new application versions.
 Staging is used to validate the application before promoting
 it to Production.
 
-* Image tag is promoted from Development.
+* The same image digest and configuration revision are promoted from Development.
 * Runs in a separate namespace within the DEV EKS cluster.
 * Environment-specific secrets, resource quotas and network policies.
 
@@ -216,7 +246,7 @@ it to Production.
 
 Production runs in a dedicated EKS cluster.
 
-* Image tag is promoted from Staging through a manual Pull Request.
+* The same image digest and configuration revision are promoted from Staging through a manual promotion PR.
 * Two application replicas.
 * Topology Spread Constraints for Pod distribution across Worker Nodes.
 * INFO log level.

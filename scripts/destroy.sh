@@ -57,18 +57,28 @@ kubectl --context dev-eks delete namespace dev staging \
 kubectl --context prod-eks delete namespace production \
   --ignore-not-found --timeout=600s
 
-# Verify that application load balancers are removed
+# Wait for AWS to finish removing application load balancers.
 for ENV in dev prod; do
     VPC=$(aws eks describe-cluster --name "$ENV-eks" \
       --query 'cluster.resourcesVpcConfig.vpcId' --output text)
 
-    COUNT=$(aws elbv2 describe-load-balancers \
-      --query "length(LoadBalancers[?VpcId=='$VPC'])" --output json)
+    DEADLINE=$((SECONDS + 600))
+    while true; do
+        COUNT=$(aws elbv2 describe-load-balancers \
+          --query "length(LoadBalancers[?VpcId=='$VPC'])" --output json)
 
-    if [[ "$COUNT" != "0" ]]; then
-        echo "Load balancers still exist in $VPC"
-        exit 1
-    fi
+        if [[ "$COUNT" == "0" ]]; then
+            break
+        fi
+
+        if (( SECONDS >= DEADLINE )); then
+            echo "ERROR: Timed out waiting for load balancers in $VPC." >&2
+            exit 1
+        fi
+
+        echo "Waiting for $COUNT load balancer(s) to be removed from $VPC."
+        sleep 10
+    done
 done
 
 # Destroy infrastructure

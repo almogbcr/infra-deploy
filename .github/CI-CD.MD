@@ -1,85 +1,85 @@
 # CI/CD
 
-The CI/CD process works on the principle of Build Once, Deploy Many.
+The project uses `main` as its long-lived source branch and two workflows:
+`CI` and `Promotion`. The Development environment remains a namespace in the
+DEV cluster; it does not require a separate Git branch.
 
-There are 3 different workflows:
+## CI
 
-* Flask CI Build and Deploy to Dev
-* Promote to Staging
-* Promote to Production
+CI runs on pull requests targeting main, pushes to main and manual dispatch.
 
-## Flask CI Build and Deploy to Dev
+* **changes** detects release-related changes, excluding Markdown files.
+* **tests** runs Ruff and Pytest for the application.
+* **helm** lints and renders the chart for all three environments.
+* **build** builds and publishes an image after the checks pass, for eligible
+  pushes to main or a manual run on main.
 
-The workflow starts when pushing to the dev branch with changes
-in the following paths:
+The release paths are `app/**`, `tests/**`, `helm/webapp/**` and
+`.github/workflows/ci.yaml`. A push changing only Argo CD release pointers or
+documentation runs checks without building another image. Pull request runs
+do not publish images.
 
-```
-- 'app/**'
-- 'tests/**'
-- '.github/workflows/ci.yaml'
-```
+The build job starts the built container and checks `/health` before pushing
+it to Docker Hub. Image tags contain the full source SHA, run ID and attempt.
+The job reads the registry digest and uploads `release.json` as the artifact
+`release-<run ID>-<attempt>`, retained for 90 days.
 
-Excluding Markdown files with the following patterns:
+Release metadata records the source revision, image repository, digest, tag,
+run ID and attempt. Deployment uses the digest rather than the tag.
 
-```
-- '!**/*.MD'
-- '!**/*.md'
-```
+Required repository configuration:
 
-The workflow can also be started manually using the "Run workflow" button.
+* Variable `DOCKERHUB_USERNAME` and secret `DOCKERHUB_TOKEN`.
+* Permission for GitHub Actions to create pull requests.
+* The allowed image repository in Promotion currently is `almogbcr/flask-app`.
+  Update that setting alongside the Docker Hub configuration if moving images.
 
-There are 3 jobs in this workflow:
+## Promotion
 
-1. **Changes** - Checks which files were changed in the app folder,
-   excluding Markdown files.
+Run **Promotion** from main using **Run workflow**. Select `dev`, `staging`
+or `production`, and provide a successful CI run ID that produced a release
+artifact.
 
-2. **Tests** - Uses Ruff to check Python files in the app and tests
-   folders for common issues, and Pytest to test the home and health endpoints.
+The workflow validates that the run belongs to this repository's CI workflow,
+ran on main through a push or manual dispatch, and completed successfully.
+It checks the metadata against the run and allowed image repository and
+verifies that the image digest exists in the registry.
 
-3. **Build** - Runs after both previous jobs finish successfully,
-   and only if application files were changed or the workflow
-   was started manually on the dev branch.
+It then opens a PR changing only the selected Application's:
 
-This was done to avoid unnecessary image builds and pushes to Docker Hub.
+* `spec.source.targetRevision` to the release's full source commit SHA.
+* `app.image.imageRepo` and `app.image.imageDigest` Helm parameters.
 
-After building the image, the container is started and the health
-endpoint is checked.
+The release combines the image with the Helm chart and configuration from
+the tested commit. Promotion does not rebuild the image or merge the PR.
 
-If the health check passes, the image is pushed to Docker Hub
-using the short commit SHA as the image tag.
+## Promotion Order and Approval
 
-The workflow then updates values-dev.yaml and pushes the changes
-to the dev branch, allowing Argo CD to deploy the new image.
+Promote Development first, then Staging, then Production. Staging requires
+the same revision, repository and digest in Development's Application;
+Production requires the same combination in Staging's Application.
 
-## Promote to Staging
+These checks compare desired state in Git. They do not verify Argo CD sync
+status, rollout health or live smoke tests. Check those before merging the
+next environment's promotion PR.
 
-The workflow starts when a Pull Request is merged into the main branch.
+Production promotion requires manually running the workflow and merging its
+PR. Mandatory independent reviewer approval must be configured through GitHub
+repository rules; workflow YAML alone does not enforce it. Protect workflow
+and Argo CD control files as well, because direct edits can bypass promotion.
 
-There is one job in this workflow - "promote".
+Each child Application is pinned to a commit. Root Applications follow main
+to pick up merged Application changes, so editing chart templates on main
+does not update every environment automatically.
 
-The job runs only if the Pull Request was merged and comes from the dev branch.
+## Rollback
 
-It takes the image tag from values-dev.yaml and validates that it contains between 7 and 10 hexadecimal characters.
+1. Find the affected Application's last known-good release in Git history.
+2. Open a PR restoring its revision, image repository and digest together.
+3. Review and merge the PR; Argo CD synchronizes the restored release.
+4. Verify sync status, rollout health and application behavior.
 
-The workflow then updates the image tag in values-staging.yaml and commits and pushes the changes to the main branch.
-
-Argo CD detects the changes and deploys the image to the Staging environment.
-
-## Promote to Production
-
-The workflow starts manually by clicking the "Run workflow" button.
-
-There is one job in this workflow - "promote".
-
-It takes the image tag from values-staging.yaml and validates that it contains between 7 and 10 hexadecimal characters.
-
-The workflow updates values-prod.yaml, creates a new branch from main, and opens a Pull Request to main.
-
-To prevent accidental deployments to Production, there are two manual steps:
-
-1. Running the workflow to create the Pull Request.
-2. Reviewing and merging the Pull Request.
-
-Argo CD detects the changes after the merge and deploys the image to the Production environment.
-
-In a real production environment, we would use Branch Protection and CODEOWNERS to require approval from a Team Leader or a DevOps Engineer before merging.
+The normal promotion workflow enforces forward environment order. A rollback
+PR restores a previous release directly and should receive the same review
+as other production changes. Retain the referenced Git commits and Docker Hub
+images; Git records release pointers even after CI artifacts expire.
