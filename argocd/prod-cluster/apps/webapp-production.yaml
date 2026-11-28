@@ -3,15 +3,12 @@ kind: Application
 metadata:
   name: webapp-production
   namespace: argocd
-
 spec:
   project: default
-
   source:
     repoURL: https://github.com/almogbcr/infra-deploy.git
     targetRevision: c456fe3f596391107bd344640b8c32f8746275b0
     path: helm/webapp
-
     helm:
       releaseName: webapp
       valueFiles:
@@ -21,13 +18,11 @@ spec:
           value: almogbcr/flask-app
           forceString: true
         - name: app.image.imageDigest
-          value: "sha256:6e4f360218f8d10e12bfe24c0d760d79ae4ba506abff36aadbd824140e2a4cde"
+          value: sha256:ba0190596b1426c0f108b147963f2fbbdd96c8475c86f35038bb59f6d60ae50f
           forceString: true
-
   destination:
     server: https://kubernetes.default.svc
     namespace: production
-
   syncPolicy:
     automated:
       selfHeal: true
