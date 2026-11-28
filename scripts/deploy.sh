@@ -18,11 +18,27 @@ aws sts get-caller-identity
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 export TF_STATE_BUCKET="infra-deploy-state-${ACCOUNT_ID}-${AWS_REGION}"
 
-aws secretsmanager list-secrets --include-planned-deletion \
-  --query 'SecretList[].[Name,DeletedDate]' --output table
-
-read -rp "No project secrets pending deletion? Type DEPLOY: " CONFIRM
+read -rp "Type DEPLOY to create both environments: " CONFIRM
 [[ "$CONFIRM" == "DEPLOY" ]] || exit 1
+
+# Check for secrets pending deletion
+for ENV in dev staging production; do
+    SECRET="$ENV/flask/api-key"
+
+    if RESULT=$(aws secretsmanager describe-secret \
+        --secret-id "$SECRET" \
+        --query 'DeletedDate' --output text 2>&1); then
+
+        if [[ "$RESULT" != "None" ]]; then
+            echo "ERROR: $SECRET is pending deletion"
+            exit 1
+        fi
+
+    elif [[ "$RESULT" != *ResourceNotFoundException* ]]; then
+        echo "$RESULT"
+        exit 1
+    fi
+done
 
 # Initialize remote state backend
 (cd terragrunt/dev/network && terragrunt backend bootstrap)
