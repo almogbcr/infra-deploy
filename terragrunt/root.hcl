@@ -1,4 +1,4 @@
-terraform_binary = "terraform"
+terraform_binary = "tofu"
 
 generate "provider" {
   path      = "providers.tf"
@@ -20,15 +20,19 @@ provider "aws" {
 EOF
 }
 
-generate "backend" {
-  path      = "backend.tf"
-  if_exists = "overwrite_terragrunt"
+remote_state {
+  backend = "s3"
 
-  contents = <<EOF
-terraform {
-  backend "local" {
-    path = "${get_terragrunt_dir()}/terraform.tfstate"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
   }
-}
-EOF
+
+  config = {
+    bucket       = get_env("TF_STATE_BUCKET")
+    key          = "${path_relative_to_include()}/terraform.tfstate"
+    region       = get_env("AWS_REGION")
+    encrypt      = true
+    use_lockfile = true
+  }
 }

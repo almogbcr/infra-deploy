@@ -1,3 +1,11 @@
 configs:
+  cm:
+    accounts.developer: login
+
   rbac:
-    policy.default: role:readonly
+    policy.default: role:authenticated
+    policy.csv: |
+      p, role:developer, applications, get, default/webapp-dev, allow
+      p, role:developer, applications, sync, default/webapp-dev, allow
+      p, role:developer, applications, get, default/webapp-staging, allow
+      g, developer, role:developer
