@@ -26,13 +26,14 @@ App has three endpoints:
 * **Kubernetes / Amazon EKS** - Container orchestration.
 * **Helm** - Kubernetes application packaging and configuration.
 * **Argo CD** - GitOps-based continuous delivery.
-* **Terraform** - Infrastructure provisioning using IaC.
-* **Terragrunt** - Terraform configuration and dependency management.
+* **OpenTufu** - Infrastructure provisioning using IaC.
+* **Terragrunt** - OpenTofu configuration and dependency management.
 * **AWS VPC** - Cloud networking and environment isolation.
 * **AWS IAM** - Identity and access management.
 * **AWS Load Balancer Controller** - Application ingress and traffic routing.
 * **AWS Secrets Manager** - Secure storage of application secrets.
 * **External Secrets Operator** - Synchronization of AWS secrets into Kubernetes.
+* **Amazon S3** - Remote state storage and state locking.
 
 ## Architecture
 
@@ -71,13 +72,33 @@ flowchart TD
     class PROD,P prod
 ```
 
+## Infrastructure Sizing
+
+The project was deployed using the AWS Free Tier plan,
+with cost and resource limitations taken into consideration.
+
+| Cluster | Instance Type | Worker Nodes | vCPU per Node | RAM per Node |
+|---------|---------------|--------------|---------------|--------------|
+| DEV | m7i-flex.large | 1 | 2 | 8 GiB |
+| PROD | c7i-flex.large | 2 | 2 | 4 GiB |
+
+The DEV cluster uses a single worker node shared by
+the Development and Staging environments to reduce costs.
+
+The PROD cluster uses two worker nodes across two
+Availability Zones to improve application availability
+and reduce the impact of a single worker node failure.
+
+The infrastructure is created for testing and validation
+and destroyed when it is no longer needed to minimize costs.
+
 ## CI/CD
 
 The CI/CD process is managed using GitHub Actions and Argo CD.
 
 * Dev - Automated testing, image build, and deployment.
 * Staging - Controlled image promotion through a Pull Request.
-* Prod - Controlled image promotion following manual approval.
+* Prod - Controlled image promotion through a manually merged Pull Request.
 
 The pipeline follows the Build Once, Deploy Many principle,
 promoting the same Docker image across all environments
@@ -88,7 +109,7 @@ the desired configuration from Git to Kubernetes.
 
 ## Deployment
 
-The infrastructure is provisioned using Terraform and Terragrunt.
+The infrastructure is provisioned using OpenTufu and Terragrunt.
 
 The deployment process includes:
 
