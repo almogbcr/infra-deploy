@@ -1,0 +1,71 @@
+name: App pull request checks
+
+on:
+  pull_request:
+    branches: [dev, staging, prod]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    outputs:
+      apps: ${{ steps.filter.outputs.changes }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Find changed apps
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
+        with:
+          filters: |
+            appoen:
+              - 'apps/appoen/**'
+              - '.github/workflows/pr.yaml'
+            apptwo:
+              - 'apps/apptwo/**'
+              - '.github/workflows/pr.yaml'
+            appthree:
+              - 'apps/appthree/**'
+              - '.github/workflows/pr.yaml'
+            appfour:
+              - 'apps/appfour/**'
+              - '.github/workflows/pr.yaml'
+            appfive:
+              - 'apps/appfive/**'
+              - '.github/workflows/pr.yaml'
+            appsix:
+              - 'apps/appsix/**'
+              - '.github/workflows/pr.yaml'
+            appseven:
+              - 'apps/appseven/**'
+              - '.github/workflows/pr.yaml'
+            appeight:
+              - 'apps/appeight/**'
+              - '.github/workflows/pr.yaml'
+
+  tests:
+    needs: changes
+    if: needs.changes.outputs.apps != '[]'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJSON(needs.changes.outputs.apps) }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Setup Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.14'
+      - name: Install test dependencies
+        run: |
+          python -m pip install -r apps/${{ matrix.app }}/requirements.txt
+          python -m pip install ruff pytest
+      - name: Lint app
+        run: ruff check --select F --ignore F401 apps/${{ matrix.app }}/
+      - name: Test app
+        run: python -m pytest -v apps/${{ matrix.app }}/tests/
