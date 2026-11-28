@@ -14,7 +14,26 @@ ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 export TF_STATE_BUCKET="infra-deploy-state-${ACCOUNT_ID}-${AWS_REGION}"
 
 read -rp "Type DESTROY to delete both environments: " CONFIRM
+
 [[ "$CONFIRM" == "DESTROY" ]] || exit 1
+
+# Run cleanup verification when the script exits
+VERIFY_SCRIPT="$PWD/scripts/verify-cleanup.sh"
+
+verify_on_exit() {
+    local DESTROY_STATUS=$?
+    local VERIFY_STATUS=0
+
+    bash "$VERIFY_SCRIPT" || VERIFY_STATUS=$?
+
+    if [[ "$DESTROY_STATUS" != "0" ]]; then
+        exit "$DESTROY_STATUS"
+    fi
+
+    exit "$VERIFY_STATUS"
+}
+
+trap verify_on_exit EXIT
 
 # Remove Argo CD applications
 for ENV in dev prod; do
