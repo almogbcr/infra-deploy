@@ -9,7 +9,7 @@ spec:
 
   source:
     repoURL: https://github.com/almogbcr/infra-deploy.git
-    targetRevision: main
+    targetRevision: c456fe3f596391107bd344640b8c32f8746275b0
     path: helm/webapp
 
     helm:
