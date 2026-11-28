@@ -1,4 +1,4 @@
-terraform_binary = "tofu"
+terraform_binary = "terraform"
 
 generate "provider" {
   path      = "providers.tf"
