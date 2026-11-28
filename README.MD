@@ -141,8 +141,8 @@ followed by AWS resource verification.
 |-----------|---------------|
 | Application & Docker | [README](app/README.MD) |
 | GitHub Actions | [README](.github/CI-CD.MD) |
-| Helm | [README](helm/README.MD) |
-| Argo CD | [README](argocd/README.MD) |
-| OpenTofu | [README](terraform/README.MD) |
-| Terragrunt | [README](terragrunt/README.MD) |
-| Deployment Scripts | [README](scripts/README.MD) |
+| Helm | [README](helm/helm.md) |
+| Argo CD | [README](argocd/argo.md) |
+| OpenTofu | [README](terraform/opentofu.md) |
+| Terragrunt | [README](terragrunt/terragrunt.md) |
+| Deployment Scripts | [README](scripts/script.md) |
