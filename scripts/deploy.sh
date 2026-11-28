@@ -9,8 +9,13 @@ export AWS_PAGER=""
 PUBLIC_IP=$(curl -fsS https://checkip.amazonaws.com)
 export EKS_API_CIDR="$PUBLIC_IP/32"
 
-source "$HOME/.config/infra-deploy/argocd.env"
-test -r "$GITHUB_APP_PRIVATE_KEY"
+# Optional GitHub App authentication
+USE_GITHUB_APP="${USE_GITHUB_APP:-false}"
+
+if [[ "$USE_GITHUB_APP" == "true" ]]; then
+    source "$HOME/.config/infra-deploy/argocd.env"
+    test -r "$GITHUB_APP_PRIVATE_KEY"
+fi
 
 # Pre-flight checks
 aws sts get-caller-identity
@@ -64,7 +69,9 @@ done
 for ENV in dev prod; do
     aws eks update-kubeconfig --name "$ENV-eks" --alias "$ENV-eks"
 
-    ./scripts/configure-argocd-repo.sh "$ENV-eks"
+    if [[ "$USE_GITHUB_APP" == "true" ]]; then
+        ./scripts/configure-argocd-repo.sh "$ENV-eks"
+    fi
 
     kubectl --context "$ENV-eks" apply \
       -f "argocd/$ENV-cluster/root.yaml"
