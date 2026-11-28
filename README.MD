@@ -71,6 +71,26 @@ flowchart TD
     class PROD,P prod
 ```
 
+## Infrastructure Sizing
+
+The project was deployed using the AWS Free Tier plan,
+with cost and resource limitations taken into consideration.
+
+| Cluster | Instance Type | Worker Nodes | vCPU per Node | RAM per Node |
+|---------|---------------|--------------|---------------|--------------|
+| DEV | m7i-flex.large | 1 | 2 | 8 GiB |
+| PROD | c7i-flex.large | 2 | 2 | 4 GiB |
+
+The DEV cluster uses a single worker node shared by
+the Development and Staging environments to reduce costs.
+
+The PROD cluster uses two worker nodes across two
+Availability Zones to improve application availability
+and reduce the impact of a single worker node failure.
+
+The infrastructure is created for testing and validation
+and destroyed when it is no longer needed to minimize costs.
+
 ## CI/CD
 
 The CI/CD process is managed using GitHub Actions and Argo CD.
