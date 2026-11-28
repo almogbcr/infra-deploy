@@ -8,8 +8,11 @@ APP_ENV = os.getenv("APP_ENV", "local")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 APP_MESSAGE = os.getenv("APP_MESSAGE", "Hello World")
 
+app.logger.setLevel(LOG_LEVEL.upper())
+
 @app.route("/")
 def hello_world():
+        app.logger.debug("Home endpoint requested")
         return {
         "message": APP_MESSAGE,
         "environment": APP_ENV,

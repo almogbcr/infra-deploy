@@ -74,3 +74,8 @@ networkPolicy:
   enabled: false
   denyEgress: false
   allowedCidrs: []
+
+rbac:
+  enabled: false
+  group: developers
+  allowPodDeletion: false

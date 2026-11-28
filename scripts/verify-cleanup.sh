@@ -77,10 +77,23 @@ aws secretsmanager list-secrets --include-planned-deletion \
   --query 'SecretList[?DeletedDate!=`null`].[Name,DeletedDate]' \
   --output table
 
-echo "===== SUMMARY ====="
+echo "===== REMOTE STATE ====="
+
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+TF_STATE_BUCKET="infra-deploy-state-${ACCOUNT_ID}-${AWS_REGION}"
+
+aws s3api head-bucket --bucket "$TF_STATE_BUCKET"
+
+echo "[OK] State bucket retained intentionally: $TF_STATE_BUCKET"
+
+check "Active State Locks" s3api list-objects-v2 \
+  --bucket "$TF_STATE_BUCKET" \
+  --query "length(Contents[?ends_with(Key, '.tflock')] || \`[]\`)"
+
+  echo "===== SUMMARY ====="
 
 if [[ "$FAILED" == "0" ]]; then
-    echo "No remaining resources detected by the cleanup checks."
+    echo "No remaining infrastructure resources detected."
 else
     echo "WARNING: Resources still exist. Review the results."
 fi

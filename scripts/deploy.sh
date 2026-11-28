@@ -14,11 +14,18 @@ test -r "$GITHUB_APP_PRIVATE_KEY"
 
 # Pre-flight checks
 aws sts get-caller-identity
+
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+export TF_STATE_BUCKET="infra-deploy-state-${ACCOUNT_ID}-${AWS_REGION}"
+
 aws secretsmanager list-secrets --include-planned-deletion \
   --query 'SecretList[].[Name,DeletedDate]' --output table
 
 read -rp "No project secrets pending deletion? Type DEPLOY: " CONFIRM
 [[ "$CONFIRM" == "DEPLOY" ]] || exit 1
+
+# Initialize remote state backend
+(cd terragrunt/dev/network && terragrunt backend bootstrap)
 
 # Deploy infrastructure
 (cd terragrunt && terragrunt run --all apply)

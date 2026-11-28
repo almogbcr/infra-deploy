@@ -10,6 +10,9 @@ export EKS_API_CIDR="$PUBLIC_IP/32"
 
 aws sts get-caller-identity
 
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+export TF_STATE_BUCKET="infra-deploy-state-${ACCOUNT_ID}-${AWS_REGION}"
+
 read -rp "Type DESTROY to delete both environments: " CONFIRM
 [[ "$CONFIRM" == "DESTROY" ]] || exit 1
 
