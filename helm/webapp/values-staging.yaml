@@ -1,7 +1,7 @@
 app:
   replicas: 1
   image:
-    imageTag: a77364d
+    imageTag: 6f6be62
   resources:
     requests:
       cpu: "100m"
@@ -34,6 +34,5 @@ networkPolicy:
   allowedCidrs:
     - "10.0.4.0/24"
     - "10.0.5.0/24"
-
 rbac:
   enabled: true

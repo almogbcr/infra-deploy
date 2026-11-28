@@ -1,8 +1,7 @@
 app:
   replicas: 2
   image:
-    imageTag: a77364d
-
+    imageTag: 6f6be62
   resources:
     requests:
       cpu: "200m"
@@ -10,17 +9,13 @@ app:
     limits:
       cpu: "600m"
       memory: "192Mi"
-
   env:
     LOG_LEVEL: INFO
-
   topologySpread:
     enabled: true
-
 ingress:
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
-
 externalSecrets:
   enabled: true
   data:
@@ -28,7 +23,6 @@ externalSecrets:
       remoteKey: production/flask/api-key
 aws:
   region: "eu-north-1"
-
 resourceQuota:
   enabled: true
   hard:
@@ -36,14 +30,12 @@ resourceQuota:
     requests.cpu: 2
     limits.memory: 2Gi
     limits.cpu: 4
-
 networkPolicy:
   enabled: true
   denyEgress: true
   allowedCidrs:
     - "10.0.18.0/24"
     - "10.0.19.0/24"
-
 rbac:
   enabled: true
   allowPodDeletion: false
