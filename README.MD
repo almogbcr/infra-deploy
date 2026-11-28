@@ -26,7 +26,7 @@ App has three endpoints:
 * **Kubernetes / Amazon EKS** - Container orchestration.
 * **Helm** - Kubernetes application packaging and configuration.
 * **Argo CD** - GitOps-based continuous delivery.
-* **OpenTufu** - Infrastructure provisioning using IaC.
+* **OpenTofu** - Infrastructure provisioning using IaC.
 * **Terragrunt** - OpenTofu configuration and dependency management.
 * **AWS VPC** - Cloud networking and environment isolation.
 * **AWS IAM** - Identity and access management.
@@ -77,6 +77,9 @@ flowchart TD
 The project was deployed using the AWS Free Tier plan,
 with cost and resource limitations taken into consideration.
 
+Infrastructure costs are covered by AWS Free Tier credits.
+Additional charges may apply when using a paid AWS account.
+
 | Cluster | Instance Type | Worker Nodes | vCPU per Node | RAM per Node |
 |---------|---------------|--------------|---------------|--------------|
 | DEV | m7i-flex.large | 1 | 2 | 8 GiB |
@@ -85,9 +88,12 @@ with cost and resource limitations taken into consideration.
 The DEV cluster uses a single worker node shared by
 the Development and Staging environments to reduce costs.
 
-The PROD cluster uses two worker nodes across two
-Availability Zones to improve application availability
+The PROD cluster uses two worker nodes with subnets
+in two Availability Zones to improve application availability
 and reduce the impact of a single worker node failure.
+
+During testing, the worker nodes were successfully
+distributed across two Availability Zones.
 
 The infrastructure is created for testing and validation
 and destroyed when it is no longer needed to minimize costs.
@@ -96,9 +102,15 @@ and destroyed when it is no longer needed to minimize costs.
 
 The CI/CD process is managed using GitHub Actions and Argo CD.
 
-* Dev - Automated testing, image build, and deployment.
-* Staging - Controlled image promotion through a Pull Request.
-* Prod - Controlled image promotion through a manually merged Pull Request.
+* Dev - Automated testing, image build, and deployment
+  after successful CI workflow completion.
+
+* Staging - Automatically promoted after merging a
+  Pull Request from the dev branch into main.
+
+* Prod - Deployment requires two manual steps:
+  1. Running the production promotion workflow to create a Pull Request.
+  2. Reviewing and merging the Pull Request into main.
 
 The pipeline follows the Build Once, Deploy Many principle,
 promoting the same Docker image across all environments
@@ -131,6 +143,6 @@ followed by AWS resource verification.
 | GitHub Actions | [README](.github/CI-CD.MD) |
 | Helm | [README](helm/README.MD) |
 | Argo CD | [README](argocd/README.MD) |
-| Terraform | [README](terraform/README.MD) |
+| OpenTofu | [README](terraform/README.MD) |
 | Terragrunt | [README](terragrunt/README.MD) |
 | Deployment Scripts | [README](scripts/README.MD) |
