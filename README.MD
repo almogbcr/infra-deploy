@@ -26,13 +26,14 @@ App has three endpoints:
 * **Kubernetes / Amazon EKS** - Container orchestration.
 * **Helm** - Kubernetes application packaging and configuration.
 * **Argo CD** - GitOps-based continuous delivery.
-* **Terraform** - Infrastructure provisioning using IaC.
-* **Terragrunt** - Terraform configuration and dependency management.
+* **OpenTufu** - Infrastructure provisioning using IaC.
+* **Terragrunt** - OpenTofu configuration and dependency management.
 * **AWS VPC** - Cloud networking and environment isolation.
 * **AWS IAM** - Identity and access management.
 * **AWS Load Balancer Controller** - Application ingress and traffic routing.
 * **AWS Secrets Manager** - Secure storage of application secrets.
 * **External Secrets Operator** - Synchronization of AWS secrets into Kubernetes.
+* **Amazon S3** - Remote state storage and state locking.
 
 ## Architecture
 
@@ -97,7 +98,7 @@ The CI/CD process is managed using GitHub Actions and Argo CD.
 
 * Dev - Automated testing, image build, and deployment.
 * Staging - Controlled image promotion through a Pull Request.
-* Prod - Controlled image promotion following manual approval.
+* Prod - Controlled image promotion through a manually merged Pull Request.
 
 The pipeline follows the Build Once, Deploy Many principle,
 promoting the same Docker image across all environments
@@ -108,7 +109,7 @@ the desired configuration from Git to Kubernetes.
 
 ## Deployment
 
-The infrastructure is provisioned using Terraform and Terragrunt.
+The infrastructure is provisioned using OpenTufu and Terragrunt.
 
 The deployment process includes:
 
